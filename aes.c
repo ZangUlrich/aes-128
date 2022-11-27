@@ -48,7 +48,7 @@ const uint8_t invsbox[256] = { 0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0
 
 
 
-void affiche(uint8_t ***roundKeys) {
+void affiche(uint8_t roundKeys[][STATE_ROW_SIZE][STATE_COL_SIZE]) {
 	for (int round = 0; round <= ROUND_COUNT; round++) {
 
 		for (int i = 0; i < STATE_ROW_SIZE; ++i) {
@@ -62,7 +62,7 @@ void affiche(uint8_t ***roundKeys) {
 	}
 }
 
-void affiche_state(uint8_t **state) {
+void affiche_state(uint8_t state[STATE_ROW_SIZE][STATE_COL_SIZE]) {
 
 	for (int i = 0; i < STATE_ROW_SIZE; ++i) {
 		for (int j = 0; j < STATE_COL_SIZE; ++j) {
@@ -143,7 +143,7 @@ void free_roundKeys(uint8_t*** roundKeys) {
 }
 
 
-void ColumnFill ( uint8_t ***roundkeys , int round ) {
+void ColumnFill ( uint8_t roundkeys [][STATE_ROW_SIZE][STATE_COL_SIZE] , int round ) {
 
 	uint8_t temp_column[STATE_ROW_SIZE];
 
@@ -172,7 +172,7 @@ void ColumnFill ( uint8_t ***roundkeys , int round ) {
 }
 
 
-void OtherColumnsFill ( uint8_t ***roundkeys, int round ) {
+void OtherColumnsFill ( uint8_t roundkeys [][STATE_ROW_SIZE][STATE_COL_SIZE], int round ) {
 
 
 	// xor with W_i-4
@@ -187,7 +187,7 @@ void OtherColumnsFill ( uint8_t ***roundkeys, int round ) {
 
 }
 
-void KeyGen ( uint8_t ***roundkeys, uint8_t **master_key) {
+void KeyGen ( uint8_t roundkeys [][STATE_ROW_SIZE][STATE_COL_SIZE], uint8_t master_key [STATE_ROW_SIZE][STATE_COL_SIZE]) {
 
 	for (int i = 0; i < STATE_COL_SIZE; ++i) {
 		for (int j = 0; j < STATE_ROW_SIZE ; ++j)
@@ -205,7 +205,7 @@ void KeyGen ( uint8_t ***roundkeys, uint8_t **master_key) {
 }
 
 
-void GetRoundKey ( uint8_t **roundkey, uint8_t ***roundkeys, int round ) {
+void GetRoundKey ( uint8_t roundkey [STATE_ROW_SIZE][STATE_COL_SIZE], uint8_t roundkeys [][STATE_ROW_SIZE][STATE_COL_SIZE], int round ) {
 	for (int i = 0; i < STATE_COL_SIZE; ++i) {
 		for (int j = 0; j < STATE_COL_SIZE; ++j) {
 
@@ -215,7 +215,7 @@ void GetRoundKey ( uint8_t **roundkey, uint8_t ***roundkeys, int round ) {
 	}
 }
 
-void AddRoundKey ( uint8_t **state, uint8_t **roundkey) {
+void AddRoundKey ( uint8_t state [STATE_ROW_SIZE][STATE_COL_SIZE], uint8_t roundkey [STATE_ROW_SIZE][STATE_COL_SIZE]) {
 
 	//xor with the roundkey
 	for (int i = 0; i < STATE_COL_SIZE; ++i) {
@@ -228,7 +228,7 @@ void AddRoundKey ( uint8_t **state, uint8_t **roundkey) {
 }
 
 
-void SubBytes ( uint8_t **state) {
+void SubBytes ( uint8_t state [STATE_ROW_SIZE][STATE_COL_SIZE]) {
 
 	//subBytes
 	uint8_t firstByte, secondByte;
@@ -244,7 +244,7 @@ void SubBytes ( uint8_t **state) {
 
 }
 
-void ShiftRows ( uint8_t **state) {
+void ShiftRows ( uint8_t state [STATE_ROW_SIZE][STATE_COL_SIZE]) {
 	uint8_t temp;
 	int k = 0; //nombre de rotation à chaque ligne
 
@@ -283,7 +283,7 @@ uint8_t gmul(uint8_t a, uint8_t b) {
 	return p;
 }
 
-void MixColumns(uint8_t **state) {
+void MixColumns(uint8_t state [STATE_ROW_SIZE][STATE_COL_SIZE]) {
 
 	uint8_t temp[4];
 
@@ -300,7 +300,7 @@ void MixColumns(uint8_t **state) {
 
 }
 
-void AESEncrypt_state(uint8_t **state, uint8_t ***roundKeys) {
+void AESEncrypt_state(uint8_t state [STATE_ROW_SIZE][STATE_COL_SIZE], uint8_t roundKeys[][STATE_ROW_SIZE][STATE_COL_SIZE]) {
 
 	AddRoundKey(state, roundKeys[0]);
 
@@ -317,7 +317,7 @@ void AESEncrypt_state(uint8_t **state, uint8_t ***roundKeys) {
 
 }
 
-void StateToMessage ( uint8_t *message, uint8_t **state) {
+void StateToMessage ( uint8_t message[DATA_SIZE], uint8_t state[STATE_ROW_SIZE][STATE_COL_SIZE]) {
 	for (int i = 0; i < STATE_COL_SIZE; ++i) {
 		for (int j = 0; j < STATE_ROW_SIZE; ++j) {
 			message[i * 4 + j] = state[i][j];
@@ -326,7 +326,7 @@ void StateToMessage ( uint8_t *message, uint8_t **state) {
 }
 
 
-void MessageToState ( uint8_t **state, uint8_t message [DATA_SIZE ]) {
+void MessageToState ( uint8_t state[STATE_ROW_SIZE][STATE_COL_SIZE], uint8_t message[DATA_SIZE ]) {
 
 
 	for (int i = 0; i < STATE_COL_SIZE; ++i) {
@@ -339,61 +339,39 @@ void MessageToState ( uint8_t **state, uint8_t message [DATA_SIZE ]) {
 }
 
 
-void AESEncrypt ( uint8_t *ciphertext, uint8_t *plaintext , uint8_t key [DATA_SIZE ]) {
+void AESEncrypt ( uint8_t ciphertext[DATA_SIZE], uint8_t plaintext[DATA_SIZE] , uint8_t key [DATA_SIZE]) {
 
 	//state
-	uint8_t **state = malloc(sizeof(uint8_t*)*STATE_COL_SIZE);
-	for (int i = 0; i < STATE_COL_SIZE; ++i) {
-		state[i] = malloc(sizeof(uint8_t) * STATE_ROW_SIZE);
-	}
+	uint8_t state[STATE_ROW_SIZE][STATE_COL_SIZE];
 
 	//master_key
-	uint8_t **master_key = malloc(sizeof(uint8_t*)*STATE_COL_SIZE);
-	for (int i = 0; i < STATE_COL_SIZE; ++i) {
-		master_key[i] = malloc(sizeof(uint8_t) * STATE_ROW_SIZE);
-	}
+	uint8_t master_key[STATE_ROW_SIZE][STATE_COL_SIZE]; 
 
 
 	//Definition of roundKeys
-	uint8_t*** roundKeys = malloc_roundKeys();
+	uint8_t roundKeys[ROUND_COUNT + 1][STATE_ROW_SIZE][STATE_COL_SIZE];
 
 	//format Master key
 	MessageToState(master_key, key);
-	printf("Master key format : \n");
+	/*printf("Master key format : \n");
 	affiche_state(master_key);
+	*/
 
 	//generation of the roundKeys
 	KeyGen(roundKeys, master_key);
-	affiche(roundKeys);
+	//affiche(roundKeys);
 
 	//format plaintext
 	MessageToState(state, plaintext);
-	printf("plaintext format : \n");
-	affiche_state(state);
+	/*printf("plaintext format : \n");
+	affiche_state(state);*/
 
 	//aes cypher of the state
 	AESEncrypt_state(state, roundKeys);
-	printf("cypher text format : \n");
-	affiche_state(state);
+	/*printf("cypher text format : \n");
+	affiche_state(state);*/
 	//format the ciphertext
 	StateToMessage(ciphertext, state);
-
-
-
-	//On desalloue roundKeys
-	free_roundKeys(roundKeys);
-
-	//free state
-	for (int i = 0; i < STATE_COL_SIZE; ++i) {
-		free(state[i]);
-	}
-	free(state);
-
-	//free master_key
-	for (int i = 0; i < STATE_COL_SIZE; ++i) {
-		free(master_key[i]);
-	}
-	free(master_key);
 
 
 }
